@@ -1,0 +1,33 @@
+name: SimpleInventoryBackup
+main: io.github.cammy_the_block.SimpleInventoryBackup
+version: 1.0
+commands:
+  backupinventory:
+    description: This backups inventories.
+    usage: /<command> <player>
+    permission: simpleinventorybackup.backup
+    permission-message: You don't have <permission>
+  restoreinventory:    
+    description: This restores inventories.
+    usage: /<command> <player>
+    permission: simpleinventorybackup.restore
+    permission-message: You don't have <permission>
+  requestinventoryrestore:
+    description: Request an Admin to reload your inventory.
+    usage: /<command>
+    permission: simpleinventorybackup.request
+    permission-message: You don't have <permission>
+permissions:
+  simpleinventorybackup.*:
+    description: Gives access to all SimpleInventoryBackup commands
+    children:
+      simpleinventorybackup.backup: true
+      simpleinventorybackup.restore: true
+      simpleinventorybackup.request: true
+      simpleinventorybackup.seerequest: true
+  simpleinventorybackup.seerequest:
+    description: Allows you to see invetory request
+    default: false
+  simpleinventorybackup.request: 
+    default: true
+  
