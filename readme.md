@@ -9,8 +9,8 @@ SimpleInventoryBackup allows server administrators to backup specific or all pla
 
 ##Commands
 **/backupinventory <player>** - Backs up a given player's inventory. To back up all players' inventories use all in place of a player name.
-**restoreInventory <player>** - Restores a given player's inventory to the backup. To restore all player's inventories use all in place of a player name.
-**requestInventoryRestore** - Request that an admin restore their inventory.
+**/restoreInventory <player>** - Restores a given player's inventory to the backup. To restore all player's inventories use all in place of a player name.
+**/requestInventoryRestore** - Request that an admin restore their inventory.
 
 ##Permissions
 **simpleinventorybackup.backup** - Allows a player to backup inventories.
