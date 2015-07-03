@@ -28,6 +28,7 @@ SimpleInventoryBackup allows server administrators to backup specific or all pla
 
 ##Changelog
 ###V1.2
-*Added support for backing up offline players.
+* Added support for backing up offline players.
+
 ###V1.1
-*Multiworld support added.
+* Multiworld support added.
