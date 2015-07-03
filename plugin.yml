@@ -1,6 +1,6 @@
 name: SimpleInventoryBackup
 main: io.github.cammy_the_block.SimpleInventoryBackup
-version: 1.1
+version: 1.2
 commands:
   backupinventory:
     description: This backups inventories.

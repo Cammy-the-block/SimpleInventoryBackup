@@ -10,28 +10,35 @@ import java.util.List;
 import java.util.logging.Level;
 
 import org.bukkit.Bukkit;
+import org.bukkit.OfflinePlayer;
 import org.bukkit.World;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
+import org.bukkit.configuration.InvalidConfigurationException;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
+import org.bukkit.event.EventHandler;
 import org.bukkit.event.HandlerList;
 import org.bukkit.event.Listener;
+import org.bukkit.event.player.PlayerJoinEvent;
+import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.java.JavaPlugin;
 
 public class SimpleInventoryBackup  extends JavaPlugin {
 	
-	List<World> worldsToInclude = new ArrayList<World>();
-	List<World> worldsToExclude = new ArrayList<World>();
+	static List<World> worldsToInclude = new ArrayList<World>();
+	static List<World> worldsToExclude = new ArrayList<World>();
 	boolean excludeAllWorlds = false;
-	boolean includeAllWorlds = false;
+	static boolean includeAllWorlds = false;
 	boolean noWorlds = false;
 	boolean noExcludedWorlds = true;
 	boolean individualPlayerOverride = false;
 	File f = new File("plugins/SimpleInventoryBackup/playerInventoryBackups.yml");
+	static File tempf = new File("plugins/SimpleInventoryBackup/tempPlayerInventoryBackups.yml");
 	YamlConfiguration yaml = YamlConfiguration.loadConfiguration(f);
+	static YamlConfiguration temp = YamlConfiguration.loadConfiguration(tempf);
 
 	@Override
 	public void onEnable() {
@@ -79,8 +86,8 @@ public class SimpleInventoryBackup  extends JavaPlugin {
 	private boolean restoreInventory(CommandSender sender, Command cmd, String label, String[] args) {
 		if(args.length == 1){
 			if(args[0].equalsIgnoreCase("all")){
-				sender.sendMessage("Restoring all inventories acording.");
-				for(Player p : Bukkit.getServer().getOnlinePlayers()) {
+				sender.sendMessage("Restoring all inventories acording to config.");
+				for(Player p : Bukkit.getOnlinePlayers()) {
 					restoreInventoryIfSupposedTo(p);
 				}
 				sender.sendMessage("All inventories have been restored.");
@@ -119,16 +126,26 @@ public class SimpleInventoryBackup  extends JavaPlugin {
 			return p.getName() +"'s inventory has not been restored due to config settings.";
 		}
 	}
-	public void restoreInventory(Player p){
+	public void restoreInventory(Player p){ 
 		List<ItemStack> items = new ArrayList<ItemStack>();
 		for(int x = 0; x < 36; x++){
-			items.add(yaml.getItemStack(p.getName() + x));
+			items.add(yaml.getItemStack(p.getUniqueId().toString() + x));
+		}
+		if (items.isEmpty()){
+			for(int x = 0; x < 36; x++){
+				items.add(yaml.getItemStack(p.getName() + x));
+			}
 		}
 		p.getInventory().setContents(items.toArray(new ItemStack[items.size()]));
 
 		List<ItemStack> armorItems = new ArrayList<ItemStack>();
 		for(int x = 0; x < 4; x++){
-			armorItems.add(yaml.getItemStack(p.getName() + "a" + x));
+			items.add(yaml.getItemStack(p.getUniqueId().toString() + "a" + x));
+		}
+		if (items.isEmpty()){
+			for(int x = 0; x < 4; x++){
+				items.add(yaml.getItemStack(p.getName() + "a" + x));
+			}
 		}
 		p.getInventory().setArmorContents(armorItems.toArray(new ItemStack[armorItems.size()]));	
 	}
@@ -138,14 +155,23 @@ public class SimpleInventoryBackup  extends JavaPlugin {
 	public boolean backupInventory(CommandSender sender, Command cmd, String label, String[] args) {
 		if (args.length == 1){
 			if(args[0].equalsIgnoreCase("all")){
-				sender.sendMessage("Backing up all inventories");
-				for(Player p : Bukkit.getServer().getOnlinePlayers()) {
-					backupInventoryIfSupposedTo(p);
+				try {
+					yaml = new YamlConfiguration();
+					yaml.loadFromString(temp.saveToString());
+					yaml.save(f);
+				} catch (InvalidConfigurationException e1) {
+					e1.printStackTrace();
+				} catch (IOException e) {
+					e.printStackTrace();
 				}
+				sender.sendMessage("Backing up all inventories acording to config.");
+				for(Player p : Bukkit.getOnlinePlayers()) {
+					backupInventoryIfSupposedTo(p, yaml);
+				}
+				
 				try {
 					yaml.save(f);
 				} catch (IOException e) {
-					// TODO Auto-generated catch block
 					e.printStackTrace();
 				}
 				sender.sendMessage("Done backing up all inventories.");
@@ -155,16 +181,15 @@ public class SimpleInventoryBackup  extends JavaPlugin {
 				Player p = Bukkit.getPlayer(args[0]);
 				if (p != null) {
 					if(individualPlayerOverride){
-						backupInventory(p);
+						backupInventory(p, yaml);
 						sender.sendMessage(p + "'s inventory has been backed up.");
 					}
 					else {
-						sender.sendMessage(backupInventoryIfSupposedTo(p));
+						sender.sendMessage(backupInventoryIfSupposedTo(p, yaml));
 					}
 					try {
 						yaml.save(f);
 					} catch (IOException e) {
-						// TODO Auto-generated catch block
 						e.printStackTrace();
 					}
 					return true;
@@ -177,13 +202,13 @@ public class SimpleInventoryBackup  extends JavaPlugin {
 		}
 		return false;
 	}
-	public String backupInventoryIfSupposedTo(Player p){ //Checks if config permits player's inventory to be backed up
+	public static String backupInventoryIfSupposedTo(Player p, YamlConfiguration yaml){ //Checks if config permits player's inventory to be backed up
 		if (includeAllWorlds == true && !worldsToExclude.contains(p.getWorld())){
-			backupInventory(p);
+			backupInventory(p, yaml);
 			return p.getName() + "'s inventory has been backed up.";
 		}
 		else if (worldsToInclude.contains(p.getWorld())){
-			backupInventory(p);
+			backupInventory(p, yaml);
 			return p.getName() + "'s inventory has been backed up.";
 		}
 		else{
@@ -191,15 +216,17 @@ public class SimpleInventoryBackup  extends JavaPlugin {
 			return p.getName() +"'s inventory has not been backed up due to config settings.";
 		}
 	}
-	public void backupInventory(Player p){ //backs up player's inventory regardless of config
+	public static void backupInventory(Player p, YamlConfiguration yaml){ //backs up player's inventory regardless of config
 		for (int x = 0; x < p.getInventory().getContents().length; x++){
-			yaml.set(p.getName() + x, p.getInventory().getContents()[x]);
+			yaml.set(p.getUniqueId().toString() + x, p.getInventory().getContents()[x]);
 		}
 		for (int x = 0; x < p.getInventory().getArmorContents().length; x++){
-			yaml.set(p.getName() + "a" + x, p.getInventory().getArmorContents()[x]);
+			yaml.set(p.getUniqueId().toString() + "a" + x, p.getInventory().getArmorContents()[x]);
 		}
 	}
-	
+	public void backupInventoriesFromTempYml(){
+		
+	}
 	//
 	//MISC METHODS
 	//
@@ -229,5 +256,14 @@ public class SimpleInventoryBackup  extends JavaPlugin {
 	}
 }
 class TheListener implements Listener {
-
+	@EventHandler
+	public void onQuitEvent(PlayerQuitEvent event)
+	{
+		SimpleInventoryBackup.backupInventoryIfSupposedTo(event.getPlayer(), SimpleInventoryBackup.temp);
+		try {
+			SimpleInventoryBackup.temp.save(SimpleInventoryBackup.tempf);
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
 }
