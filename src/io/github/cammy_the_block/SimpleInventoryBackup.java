@@ -34,6 +34,7 @@ public class SimpleInventoryBackup  extends JavaPlugin {
 	static boolean includeAllWorlds = false;
 	boolean noWorlds = false;
 	boolean noExcludedWorlds = true;
+	static boolean backupEnderChests = true;
 	boolean individualPlayerOverride = false;
 	File f = new File("plugins/SimpleInventoryBackup/playerInventoryBackups.yml");
 	static File tempf = new File("plugins/SimpleInventoryBackup/tempPlayerInventoryBackups.yml");
@@ -45,6 +46,7 @@ public class SimpleInventoryBackup  extends JavaPlugin {
 		getServer().getPluginManager().registerEvents(new TheListener(), this);
 		getConfig().addDefault("individualplayeroverride", true);
 		getConfig().addDefault("includedworlds", "all");
+		getConfig().addDefault("backupenderchests", true);
 		getConfig().options().copyDefaults(true);
 		saveConfig();
 		readConfig();
@@ -140,14 +142,23 @@ public class SimpleInventoryBackup  extends JavaPlugin {
 
 		List<ItemStack> armorItems = new ArrayList<ItemStack>();
 		for(int x = 0; x < 4; x++){
-			items.add(yaml.getItemStack(p.getUniqueId().toString() + "a" + x));
+			armorItems.add(yaml.getItemStack(p.getUniqueId().toString() + "a" + x));
 		}
 		if (items.isEmpty()){
 			for(int x = 0; x < 4; x++){
-				items.add(yaml.getItemStack(p.getName() + "a" + x));
+				armorItems.add(yaml.getItemStack(p.getName() + "a" + x));
 			}
 		}
 		p.getInventory().setArmorContents(armorItems.toArray(new ItemStack[armorItems.size()]));	
+		
+		if (backupEnderChests){
+			List<ItemStack> enderChestItems = new ArrayList<ItemStack>();
+			for(int x = 0; x < 27; x++){
+				enderChestItems.add(yaml.getItemStack(p.getUniqueId().toString() + "e" + x));
+			}
+			p.getEnderChest().setContents(enderChestItems.toArray(new ItemStack[enderChestItems.size()]));	
+		}
+		
 	}
 	//
 	//INVENTORY BACKUP METHODS
@@ -223,6 +234,11 @@ public class SimpleInventoryBackup  extends JavaPlugin {
 		for (int x = 0; x < p.getInventory().getArmorContents().length; x++){
 			yaml.set(p.getUniqueId().toString() + "a" + x, p.getInventory().getArmorContents()[x]);
 		}
+		if (backupEnderChests){
+			for (int x = 0; x < p.getEnderChest().getContents().length; x++){
+				yaml.set(p.getUniqueId().toString() + "e" + x, p.getEnderChest().getContents()[x]);
+			}
+		}
 	}
 	public void backupInventoriesFromTempYml(){
 		
@@ -232,6 +248,7 @@ public class SimpleInventoryBackup  extends JavaPlugin {
 	//
 	public void readConfig(){
 		individualPlayerOverride = getConfig().getBoolean("individualplayeroverride");
+		backupEnderChests = getConfig().getBoolean("backupenderchests");
 		String worlds = getConfig().getString("includedworlds");
 		if(worlds == null){
 			noWorlds = true;
@@ -247,7 +264,7 @@ public class SimpleInventoryBackup  extends JavaPlugin {
 		
 		
 		worlds = getConfig().getString("excludedworlds");
-		if(worlds != null){
+		if (worlds != null){
 			for (String w: worlds.split(",")){
 				worldsToExclude.add(Bukkit.getWorld(w.trim()));
 			}
